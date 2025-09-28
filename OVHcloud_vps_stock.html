@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<!-- Compact OVHcloud VPS stock dashboard with Local Zone coverage -->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OVHcloud US VPS Stock Status — Compact (Short Names + Working Links)</title>
+  <!-- Styling keeps the page lightweight while matching dark/light themes -->
+  <style>
+    :root{
+      /* Base tokens shared by both themes */
+      --font-size: 13px;
+      --line-height: 1.2;
+      --pad-xy: 4px 6px;
+      --chip-pad: 1px 6px;
+      --radius: 8px;
+      --border-color: #ddd;
+      --border: 1px solid var(--border-color);
+      --bg-body: #ffffff;
+      --bg-th: #f7f7f7;
+      --bg-odd: #fafafa;
+      --ok-bg: #e9f7ef;
+      --bad-bg: #fdeeee;
+      --text-color: #222222;
+      --muted-text: #666666;
+      --lz-border: #99d;
+      --lz-bg: #eef3ff;
+      --chip-border: rgba(0,0,0,.08);
+      --chip-bg: #ffffff;
+      --toolbar-btn-bg: #0061ff;
+      --toolbar-btn-bg-hover: #004fd6;
+      --skeleton-base: rgba(148, 163, 184, 0.28);
+      --skeleton-glow: rgba(148, 163, 184, 0.2);
+    }
+    :root[data-theme="dark"]{
+      /* Dark mode overrides for tokens */
+      --border-color: rgba(148,163,184,0.35);
+      --bg-body: #0f172a;
+      --bg-th: rgba(148,163,184,0.16);
+      --bg-odd: rgba(15,23,42,0.76);
+      --ok-bg: rgba(34,197,94,0.22);
+      --bad-bg: rgba(248,113,113,0.2);
+      --text-color: #e2e8f0;
+      --muted-text: #94a3b8;
+      --lz-border: rgba(129,140,248,0.6);
+      --lz-bg: rgba(99,102,241,0.18);
+      --chip-border: rgba(148,163,184,0.35);
+      --chip-bg: rgba(148,163,184,0.08);
+      --toolbar-btn-bg: #2563eb;
+      --toolbar-btn-bg-hover: #1d4ed8;
+      --skeleton-base: rgba(30, 41, 59, 0.65);
+      --skeleton-glow: rgba(148, 163, 184, 0.35);
+    }
+    body{
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      margin:12px;
+      font-size:var(--font-size);
+      line-height:var(--line-height);
+      color:var(--text-color);
+      background:var(--bg-body);
+      color-scheme: light;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    :root[data-theme="dark"] body{
+      color-scheme: dark;
+    }
+    h1{
+      margin:0 0 8px 0;
+      font-size:18px;
+      font-weight:650;
+    }
+    .toolbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin:6px 0 8px 0;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .filters{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:flex-end;
+      gap:12px;
+      margin:8px 0 10px 0;
+    }
+    .filter-group{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:160px;
+    }
+    .filter-label{
+      font-size:12px;
+      color:var(--muted-text);
+    }
+    .plan-checkboxes{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+    .plan-checkboxes label{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      border:1px solid var(--border-color);
+      border-radius:999px;
+      padding:2px 8px;
+      font-size:12px;
+      cursor:pointer;
+      background:var(--chip-bg);
+      transition:background 0.2s ease, border-color 0.2s ease;
+    }
+    .plan-checkboxes label.is-checked{
+      background:var(--toolbar-btn-bg);
+      border-color:var(--toolbar-btn-bg);
+      color:#fff;
+    }
+    .plan-checkboxes label:hover{
+      border-color:rgba(59,130,246,0.5);
+    }
+    .plan-checkboxes input{
+      margin:0;
+    }
+    .plan-checkboxes label span{
+      font-size:12px;
+    }
+    .plan-checkboxes input:checked + span{
+      font-weight:600;
+    }
+    .filter-actions{
+      display:flex;
+      gap:6px;
+      margin-top:4px;
+    }
+    .link-button{
+      border:0;
+      background:none;
+      color:var(--toolbar-btn-bg);
+      font-size:12px;
+      padding:0;
+      cursor:pointer;
+    }
+    .link-button:hover{
+      text-decoration:underline;
+    }
+    .search-input{
+      min-width:200px;
+      padding:6px 10px;
+      border:1px solid var(--border-color);
+      border-radius:var(--radius);
+      background:var(--chip-bg);
+      color:inherit;
+    }
+    .search-input:focus{
+      outline:2px solid rgba(59,130,246,0.5);
+      outline-offset:1px;
+    }
+    .switch{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .switch input{
+      margin:0;
+      width:36px;
+      height:18px;
+      accent-color:var(--toolbar-btn-bg);
+    }
+    .toolbar-left{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .toolbar-button{
+      padding:6px 10px;
+      border:0;
+      border-radius:var(--radius);
+      cursor:pointer;
+      font-size:12.5px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:var(--toolbar-btn-bg);
+      color:#fff;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .toolbar-button:hover{
+      background:var(--toolbar-btn-bg-hover);
+    }
+    .toolbar-button:focus-visible{
+      outline:2px solid rgba(59,130,246,0.8);
+      outline-offset:2px;
+    }
+    #refresh-btn{
+      display:none;
+    }
+    #status{
+      font-size:12px;
+      color:var(--muted-text);
+      margin-bottom:6px;
+    }
+    #last-fetch{
+      font-size:12px;
+      color:var(--muted-text);
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      border:var(--border);
+      border-radius:var(--radius);
+      overflow:hidden;
+    }
+    th,td{
+      padding:var(--pad-xy);
+      border-bottom:var(--border);
+      vertical-align:top;
+      word-wrap:break-word;
+      overflow-wrap:anywhere;
+    }
+    thead th{
+      background:var(--bg-th);
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    tbody tr:nth-child(odd){
+      background:var(--bg-odd);
+    }
+    .cell-available{
+      background:var(--ok-bg);
+    }
+    .cell-unavailable{
+      background:var(--bad-bg);
+    }
+    .cell-note{
+      display:block;
+      font-size:11px;
+      color:var(--muted-text);
+      margin-top:2px;
+    }
+    .lz-badge{
+      font-size:11px;
+      margin-left:4px;
+      padding:0 6px;
+      border:1px solid var(--lz-border);
+      border-radius:999px;
+      background:var(--lz-bg);
+      white-space:nowrap;
+    }
+    .section-row td{
+      background:var(--bg-th);
+      font-weight:600;
+      padding:8px;
+    }
+    .section-toggle{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      border:0;
+      background:none;
+      color:inherit;
+      font-size:12.5px;
+      width:100%;
+      text-align:left;
+      cursor:pointer;
+      padding:0;
+    }
+    .section-toggle-icon{
+      font-size:11px;
+    }
+    .empty-row td{
+      text-align:center;
+      color:var(--muted-text);
+      font-size:12px;
+      padding:12px;
+    }
+    .plan-chip{
+      display:inline-block;
+      padding:var(--chip-pad);
+      border-radius:999px;
+      text-decoration:none;
+      border:1px solid var(--chip-border);
+      background:var(--chip-bg);
+      font-size:12px;
+      line-height:1.1;
+      margin:0 4px 4px 0;
+      white-space:nowrap;
+      color:inherit;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .plan-chip:hover{
+      text-decoration:underline;
+    }
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px;
+    }
+    .skeleton-table tbody tr:nth-child(odd){
+      background: transparent;
+    }
+    .skeleton-cell{
+      position:relative;
+      display:block;
+      width:100%;
+      height:14px;
+      border-radius:6px;
+      background:var(--skeleton-base);
+      overflow:hidden;
+    }
+    .skeleton-cell::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      transform:translateX(-100%);
+      background:linear-gradient(90deg, transparent, var(--skeleton-glow), transparent);
+      animation:skeleton-glow 1.2s ease-in-out infinite;
+    }
+    .skeleton-label{
+      height:12px;
+      width:60%;
+    }
+    .skeleton-bar{
+      height:18px;
+    }
+    @keyframes skeleton-glow{
+      0%{ transform:translateX(-100%); }
+      100%{ transform:translateX(100%); }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .skeleton-cell::after{
+        animation:none;
+      }
+    }
+
+    .table-wrapper{
+      width:100%;
+      overflow-x:auto;
+    }
+    .table-wrapper table{
+      width:100%;
+      min-width:680px;
+    }
+    @media (max-width: 640px){
+      .filters{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .filter-group{
+        width:100%;
+      }
+      .table-wrapper{
+        overflow-x:visible;
+      }
+      .table-wrapper table{
+        min-width:0;
+      }
+      .results-table,
+      .results-table thead,
+      .results-table tbody,
+      .results-table th,
+      .results-table td,
+      .results-table tr{
+        display:block;
+        width:100%;
+      }
+      .results-table thead{
+        display:none;
+      }
+      .results-table tbody tr{
+        margin-bottom:12px;
+        border:var(--border);
+        border-radius:var(--radius);
+        padding:12px;
+        background:var(--bg-odd);
+      }
+      .results-table tbody tr:last-child{
+        margin-bottom:0;
+      }
+      .results-table td{
+        border:none;
+        padding:6px 0;
+      }
+      .results-table td[data-label]::before{
+        content:attr(data-label);
+        display:block;
+        font-weight:600;
+        margin-bottom:2px;
+        color:var(--muted-text);
+      }
+      .results-table td.cell-available,
+      .results-table td.cell-unavailable{
+        background:transparent;
+        padding:6px 0;
+      }
+      .results-table td.cell-available .chips{
+        margin-top:4px;
+      }
+      .results-table td:first-child{
+        padding-top:0;
+      }
+      .results-table td:last-child{
+        padding-bottom:0;
+      }
+    }
+  </style>
+  <!-- Initial theme selection runs before paint to avoid flashes -->
+  <script>
+    (function(){
+      const key = 'ovhcloud-vps-theme';
+      try{
+        const saved = localStorage.getItem(key);
+        if(saved){
+          document.documentElement.setAttribute('data-theme', saved);
+          return;
+        }
+      }catch(e){}
+      if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <!-- Header plus manual controls -->
+  <h1>OVHcloud US VPS Stock Status</h1>
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button id="refresh-btn" class="toolbar-button" type="button">Refresh</button>
+      <button id="theme-toggle" class="toolbar-button" type="button" aria-pressed="false" title="Toggle dark mode (Alt+Click to follow system theme)">Dark mode</button>
+    </div>
+    <div id="last-fetch">last fetch: —</div>
+  </div>
+  <div id="status"></div>
+  <div class="filters" id="filters">
+    <div class="filter-group">
+      <span class="filter-label">Plans</span>
+      <div class="plan-checkboxes" id="plan-checkboxes"></div>
+      <div class="filter-actions">
+        <button type="button" id="plan-select-all" class="link-button">All</button>
+        <button type="button" id="plan-select-none" class="link-button">None</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Search datacenter</span>
+      <input class="search-input" id="dc-search" type="search" placeholder="Code or name" />
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Display</span>
+      <label class="switch">
+        <input type="checkbox" id="hide-empty-toggle" />
+        <span>Hide empty rows</span>
+      </label>
+    </div>
+  </div>
+  <!-- Table container populated once data resolves -->
+  <div id="results"></div>
+
+  <script>
+    // ===== Plans (code-driven href, short label for UI) =====
+    const PLANS = [
+      { code: 'vps-2025-model1', label: 'VPS-1' },
+      { code: 'vps-2025-model2', label: 'VPS-2' },
+      { code: 'vps-2025-model3', label: 'VPS-3' },
+      { code: 'vps-2025-model4', label: 'VPS-4' },
+      { code: 'vps-2025-model5', label: 'VPS-5' },
+      { code: 'vps-2025-model6', label: 'VPS-6' }
+    ];
+    const PLAN_MAP = Object.fromEntries(PLANS.map(p => [p.code, p]));
+    // Legacy workflows expect VPS-1 to be present for baseline data
+    const VPS1_CODE = 'vps-2025-model1';
+    // Local storage key shared by the eager theme bootstrapper above
+    const THEME_STORAGE_KEY = 'ovhcloud-vps-theme';
+
+
+    // Build a small link-style badge for a plan code
+    function planChipFromCode(planCode){
+      const meta = PLAN_MAP[planCode] || { code: planCode, label: planCode };
+      const a = document.createElement('a');
+      a.href = `https://us.ovhcloud.com/vps/configurator/?planCode=${encodeURIComponent(meta.code)}`;
+      a.target = '_blank'; a.rel = 'noopener'; a.className = 'plan-chip';
+      a.textContent = meta.label;
+      return a;
+    }
+
+    // Visual tag for Local Zone rows
+    function lzBadge(){
+      const s=document.createElement('span'); s.textContent='LocalZone'; s.className='lz-badge'; return s;
+    }
+
+    function norm(v){ return String(v||'').toLowerCase(); }
+    // Prefer nested OS status, falling back to flattened keys
+    function getOsStatus(dc, os){
+      const nested = dc?.[os]?.status;
+      const flat   = dc?.[os+'Status'];
+      const global = dc?.status || dc?.global?.status;
+      return norm(nested || flat || global);
+    }
+
+    // ===== Static coverage (explicit) =====
+    const PRIMARY_REGIONS = ['VIN','HIL','BHS','SBG','GRA','ERI','LIM','WAW','SGP','SYD'];
+    const CANON = {
+      'DE':'LIM','DEU':'LIM','EU-WEST-LIM':'LIM',
+      'UK':'ERI','LON':'ERI','ERITH':'ERI','EU-WEST-ERI':'ERI','EU-WEST-UK':'ERI',
+      'CANADA':'BHS','CA':'BHS','CA-EAST-BHS':'BHS','BHS1':'BHS','BHS2':'BHS','BHS3':'BHS',
+      'EU-CENTRAL-WAW':'WAW',
+      'EU-WEST-SBG':'SBG','SBG1':'SBG','SBG2':'SBG','SBG3':'SBG','SBG4':'SBG',
+      'GRA1':'GRA','GRA2':'GRA','EU-WEST-GRA':'GRA',
+      'US-EAST-VA':'VIN','US-EAST-VIN':'VIN','US-VIN':'VIN','VIN1':'VIN',
+      'US-WEST-HIL':'HIL','US-WEST-OR':'HIL','US-HIL':'HIL','HIL1':'HIL',
+      'AP-SOUTHEAST-SGP':'SGP','EU-WEST-SGP':'SGP','SGP1':'SGP','SGP2':'SGP','SGP3':'SGP',
+      'AP-SOUTHEAST-SYD':'SYD','AP-SOUTHEAST-SYD-A':'SYD','SYD1':'SYD','SYD2':'SYD','SYD3':'SYD'
+    };
+    // Friendly names + API wiring for Local Zones
+    const LOCAL_ZONES = [
+      { code: 'ATL-LZ', region: 'NA', friendly: 'Atlanta', apiCode: 'US-EAST-LZ-ATL' },
+      { code: 'DAL-LZ', region: 'NA', friendly: 'Dallas', apiCode: 'US-EAST-LZ-DAL' },
+      { code: 'DEN-LZ', region: 'NA', friendly: 'Denver', apiCode: 'US-WEST-LZ-DEN' },
+      { code: 'LAX-LZ', region: 'NA', friendly: 'Los Angeles', apiCode: 'US-WEST-LZ-LAX' },
+      { code: 'MIA-LZ', region: 'NA', friendly: 'Miami', apiCode: 'US-EAST-LZ-MIA' },
+      { code: 'NYC-LZ', region: 'NA', friendly: 'New York', apiCode: 'US-EAST-LZ-NYC' },
+      { code: 'PAO-LZ', region: 'NA', friendly: 'Palo Alto', apiCode: 'US-WEST-LZ-PAO' },
+      { code: 'SEA-LZ', region: 'NA', friendly: 'Seattle', apiCode: 'US-WEST-LZ-SEA' },
+      { code: 'AMS-LZ', region: 'EU', friendly: 'Amsterdam', apiCode: 'EU-WEST-LZ-AMS' },
+      { code: 'BRU-LZ', region: 'EU', friendly: 'Brussels', apiCode: 'EU-WEST-LZ-BRU' },
+      { code: 'MAD-LZ', region: 'EU', friendly: 'Madrid', apiCode: 'EU-SOUTH-LZ-MAD' },
+      { code: 'MRS-LZ', region: 'EU', friendly: 'Marseille', apiCode: 'EU-WEST-LZ-MRS' },
+      { code: 'PRG-LZ', region: 'EU', friendly: 'Prague', apiCode: 'EU-CENTRAL-LZ-PRG' },
+      { code: 'VIE-LZ', region: 'EU', friendly: 'Vienna', apiCode: 'EU-WEST-LZ-VIE' },
+      { code: 'ZRH-LZ', region: 'EU', friendly: 'Zurich', apiCode: 'EU-WEST-LZ-ZRH' }
+    ];
+
+    const LOCAL_ZONE_MAP = Object.fromEntries(LOCAL_ZONES.map(lz => [lz.code, lz]));
+    const LOCAL_ZONE_API_TO_CODE = LOCAL_ZONES.reduce((acc, lz) => {
+      if(lz.apiCode){
+        acc[lz.apiCode.toUpperCase()] = lz.code;
+      }
+      return acc;
+    }, {});
+    const LOCAL_ZONE_CODES_BY_REGION = LOCAL_ZONES.reduce((acc, lz) => {
+      if(!acc[lz.region]) acc[lz.region] = new Set();
+      acc[lz.region].add(lz.code);
+      return acc;
+    }, {});
+    // `.LZ` serves NA stock; `.LZ-eu` is currently the EU variant
+    const LOCAL_ZONE_FETCH_CONFIG = {
+      EU: {
+        planSuffix: '.LZ-eu',
+        endpoint: 'https://api.us.ovhcloud.com/1.0/vps/order/rule/datacenter',
+        ovhSubsidiary: 'US',
+        os: 'Ubuntu 25.04'
+      },
+      NA: {
+        planSuffix: '.LZ',
+        endpoint: 'https://api.us.ovhcloud.com/1.0/vps/order/rule/datacenter',
+        ovhSubsidiary: 'US',
+        os: 'Ubuntu 25.04'
+      }
+    };
+
+    // UI state for filters and collapsible sections
+    const state = {
+      selectedPlans: new Set(PLANS.map(p => p.code)),
+      searchTerm: '',
+      collapsed: { 'lz-NA': false, 'lz-EU': false },
+      hideEmpty: false
+    };
+    let latestData = null;
+
+    function renderPlanFilters(){
+      const host = document.getElementById('plan-checkboxes');
+      if(!host) return;
+      host.innerHTML = '';
+      PLANS.forEach(plan => {
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = plan.code;
+        input.checked = state.selectedPlans.has(plan.code);
+        input.addEventListener('change', event => {
+          if(event.target.checked){
+            state.selectedPlans.add(plan.code);
+          }else{
+            state.selectedPlans.delete(plan.code);
+          }
+          label.classList.toggle('is-checked', event.target.checked);
+          renderWithFilters();
+        });
+        const span = document.createElement('span');
+        span.textContent = plan.label;
+        label.appendChild(input);
+        label.appendChild(span);
+        if(input.checked) label.classList.add('is-checked');
+        host.appendChild(label);
+      });
+    }
+
+    function selectAllPlans(){
+      state.selectedPlans = new Set(PLANS.map(p => p.code));
+      renderPlanFilters();
+      renderWithFilters();
+    }
+
+    function clearPlanSelection(){
+      state.selectedPlans = new Set();
+      renderPlanFilters();
+      renderWithFilters();
+    }
+
+    function setSearchTerm(value){
+      state.searchTerm = value.trim().toLowerCase();
+      renderWithFilters();
+    }
+
+    function toggleSection(key){
+      state.collapsed[key] = !state.collapsed[key];
+      renderWithFilters();
+    }
+
+    function renderWithFilters(){
+      if(!latestData) return;
+      render(latestData, {
+        selectedPlans: state.selectedPlans,
+        searchTerm: state.searchTerm,
+        collapsed: state.collapsed,
+        hideEmpty: state.hideEmpty
+      });
+    }
+
+    function initFilters(){
+      renderPlanFilters();
+      const selectAllBtn = document.getElementById('plan-select-all');
+      if(selectAllBtn) selectAllBtn.addEventListener('click', selectAllPlans);
+      const selectNoneBtn = document.getElementById('plan-select-none');
+      if(selectNoneBtn) selectNoneBtn.addEventListener('click', clearPlanSelection);
+      const searchInput = document.getElementById('dc-search');
+      if(searchInput){
+        searchInput.value = state.searchTerm;
+        searchInput.addEventListener('input', event => setSearchTerm(event.target.value));
+      }
+      const hideEmptyToggle = document.getElementById('hide-empty-toggle');
+      if(hideEmptyToggle){
+        hideEmptyToggle.checked = state.hideEmpty;
+        hideEmptyToggle.addEventListener('change', event => {
+          state.hideEmpty = !!event.target.checked;
+          renderWithFilters();
+        });
+      }
+    }
+
+    // API domain varies with subsidiary
+    const API_DOMAINS = {
+      US: 'api.us.ovhcloud.com',
+      CA: 'api.ca.ovhcloud.com',
+      FR: 'api.ovh.com',
+      DE: 'api.ovh.com',
+      GB: 'api.ovh.com',
+      IE: 'api.ovh.com',
+      IT: 'api.ovh.com',
+      NL: 'api.ovh.com',
+      PL: 'api.ovh.com',
+      ES: 'api.ovh.com',
+      EU: 'api.ovh.com',
+      WE: 'api.ovh.com',
+      WS: 'api.ovh.com'
+    };
+
+    // Translate an ovhSubsidiary to the correct API hostname
+    function resolveApiDomain(sub){
+      return API_DOMAINS[sub] || 'api.ovh.com';
+    }
+
+    // Fetch Local Zone stock for a plan/region combination via the live API
+    async function fetchLocalZoneAvailability(planCode, codesOfInterest, region){
+      if(!codesOfInterest || codesOfInterest.size === 0) return {};
+      const cfg = LOCAL_ZONE_FETCH_CONFIG[region];
+      if(!cfg) return {};
+
+      const merged = {};
+      const remaining = new Set(codesOfInterest);
+      const suffix = cfg.planSuffix || '';
+      const planWithSuffix = suffix && planCode.endsWith(suffix) ? planCode : `${planCode}${suffix}`;
+      const params = new URLSearchParams({
+        ovhSubsidiary: cfg.ovhSubsidiary,
+        os: cfg.os,
+        planCode: planWithSuffix
+      });
+
+      try{
+        const res = await fetch(`${cfg.endpoint}?${params.toString()}`, { headers: { 'Accept': 'application/json' } });
+        if(!res.ok) throw new Error(`Local Zone API ${region} ${planWithSuffix} ${res.status}`);
+        const data = await res.json();
+        const dcs = Array.isArray(data?.datacenters) ? data.datacenters : [];
+        dcs.forEach(dc => {
+          if(!dc) return;
+          const raw = (dc.datacenter || dc.code || '').toUpperCase();
+          const canon = LOCAL_ZONE_API_TO_CODE[raw];
+          if(!canon || !remaining.has(canon)) return;
+
+          const linux = getOsStatus(dc,'linux');
+          const win   = getOsStatus(dc,'windows');
+          if(!merged[canon]){
+            const meta = LOCAL_ZONE_MAP[canon];
+            merged[canon] = {
+              code: canon,
+              name: meta?.friendly || canon,
+              linux: new Set(),
+              windows: new Set(),
+              isLocalZone: true,
+              lzRegion: region,
+              hasLiveData: true
+            };
+          }else{
+            merged[canon].hasLiveData = true;
+          }
+          if(linux === 'available') merged[canon].linux.add(planCode);
+          if(win   === 'available') merged[canon].windows.add(planCode);
+          remaining.delete(canon);
+        });
+      }catch(err){
+        console.warn('Local zone fetch failed for', region, planCode, err);
+      }
+
+      return merged;
+    }
+
+    // API endpoints
+    const subsidiaries = ['ASIA','AU','CA','CZ','DE','ES','EU','FI','FR','GB','IE','IT','LT','MA','NL','PL','PT','QC','SG','SN','TN','US','WE','WS'];
+
+    // Pull standard (non-LZ) datacenter rules for a plan+subsidiary pair
+    async function fetchDatacenters(planCode, subsidiary){
+      const domain = resolveApiDomain(subsidiary);
+      const url = `https://${domain}/v1/vps/order/rule/datacenter?ovhSubsidiary=${encodeURIComponent(subsidiary)}&planCode=${encodeURIComponent(planCode)}`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if(!res.ok) throw new Error(`API ${subsidiary} ${res.status}`);
+      return res.json();
+    }
+
+    // Merge every subsidiary’s response into a unified map for one plan
+    async function fetchAllDatacenters(planCode){
+      const merged = {};
+      const results = await Promise.all(subsidiaries.map(sub =>
+        fetchDatacenters(planCode, sub)
+          .then(data => ({ sub, data }))
+          .catch(err => {
+            console.warn('Failed to fetch datacenters for', sub, err);
+            return { sub, error: true };
+          })
+      ));
+      results.forEach(r => {
+        if (r.error) return;
+        const dcs = Array.isArray(r.data?.datacenters) ? r.data.datacenters : [];
+        dcs.forEach(dc => {
+          const raw = (dc.code || dc.dcCode || '').toUpperCase();
+          if(!raw) return;
+          const canon = CANON[raw] || raw;
+          if(!merged[canon]){
+            const name = dc.datacenter || dc.datacenterName || canon;
+            merged[canon] = { code: canon, name, linux: new Set(), windows: new Set() };
+          }
+          const linux = getOsStatus(dc,'linux');
+          const win   = getOsStatus(dc,'windows');
+          if(linux === 'available') merged[canon].linux.add(planCode);
+          if(win   === 'available') merged[canon].windows.add(planCode);
+        });
+      });
+
+      for(const [region, regionCodes] of Object.entries(LOCAL_ZONE_CODES_BY_REGION)){
+        const missing = new Set();
+        regionCodes.forEach(code => { if(!merged[code]) missing.add(code); });
+        if(missing.size === 0) continue;
+
+        const supplement = await fetchLocalZoneAvailability(planCode, missing, region);
+        Object.entries(supplement).forEach(([code, entry]) => {
+          if(!merged[code]){
+            merged[code] = entry;
+            return;
+          }
+          entry.linux.forEach(v => merged[code].linux.add(v));
+          entry.windows.forEach(v => merged[code].windows.add(v));
+          if(entry.name && (!merged[code].name || merged[code].name === code)){
+            merged[code].name = entry.name;
+          }
+          if(entry.isLocalZone) merged[code].isLocalZone = true;
+          if(entry.lzRegion) merged[code].lzRegion = entry.lzRegion;
+          if(entry.hasLiveData) merged[code].hasLiveData = true;
+        });
+      }
+
+      return merged;
+    }
+
+    // Guarantee primary regions exist so the table is stable even if API omits them
+    function ensureBaseRegions(dcMap){
+      PRIMARY_REGIONS.forEach(code => {
+        if(!dcMap[code]) dcMap[code] = { code, name: code, linux: new Set(), windows: new Set() };
+      });
+    }
+    // Seed Local Zone rows when the API gives us nothing (later replaced by live data)
+    function injectLocalZones(dcMap){
+      LOCAL_ZONES.forEach(lz => {
+        // Only add a Local Zone if it wasn't returned by the API.
+        // This prevents overwriting live stock data with our baseline.
+        if (!dcMap[lz.code]) {
+          dcMap[lz.code] = {
+            code: lz.code, name: lz.friendly,
+            linux: new Set(),
+            windows: new Set(),
+            isLocalZone: true, lzRegion: lz.region,
+            hasLiveData: false
+          };
+        }
+      });
+    }
+
+    // Apply a theme token and sync button state
+    function applyTheme(theme){
+      const root = document.documentElement;
+      root.setAttribute('data-theme', theme);
+      const toggle = document.getElementById('theme-toggle');
+      if(toggle){
+        const isDark = theme === 'dark';
+        toggle.textContent = isDark ? 'Light mode' : 'Dark mode';
+        toggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      }
+    }
+
+    // Wrap localStorage access so browsers without storage don’t explode
+    function getStoredTheme(){
+      try{
+        return localStorage.getItem(THEME_STORAGE_KEY);
+      }catch(e){
+        return null;
+      }
+    }
+
+    // Persist theme selection unless the user opts back into system defaults
+    function setStoredTheme(value){
+      try{
+        if(value === null){
+          localStorage.removeItem(THEME_STORAGE_KEY);
+        }else{
+          localStorage.setItem(THEME_STORAGE_KEY, value);
+        }
+      }catch(e){}
+    }
+
+    // Hook up theme toggle plus system preference listeners
+    function initTheme(){
+      const toggle = document.getElementById('theme-toggle');
+      const prefersDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+      let systemTheme = prefersDark && prefersDark.matches ? 'dark' : 'light';
+      const stored = getStoredTheme();
+      const initial = stored || systemTheme;
+      applyTheme(initial);
+
+      if(!toggle) return;
+
+      toggle.addEventListener('click', event => {
+        if(event.altKey){
+          setStoredTheme(null);
+          applyTheme(systemTheme);
+          return;
+        }
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        setStoredTheme(next);
+        applyTheme(next);
+      });
+
+      if(prefersDark){
+        const handleSystemChange = event => {
+          systemTheme = event.matches ? 'dark' : 'light';
+          if(getStoredTheme() !== null) return;
+          applyTheme(systemTheme);
+        };
+        if(prefersDark.addEventListener){
+          prefersDark.addEventListener('change', handleSystemChange);
+        }else if(prefersDark.addListener){
+          prefersDark.addListener(handleSystemChange);
+        }
+      }
+    }
+
+    // Placeholder table shown while network requests are in flight
+    function renderSkeleton(){
+      const container = document.getElementById('results');
+      if(!container) return;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-wrapper';
+      const table = document.createElement('table');
+      table.className = 'results-table skeleton-table';
+      table.innerHTML = '<thead><tr><th>Datacenter</th><th>Linux (Models)</th><th>Windows (Models)</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      const labels = ['Datacenter','Linux (Models)','Windows (Models)'];
+      for(let i=0;i<6;i+=1){
+        const tr = document.createElement('tr');
+        ['skeleton-label','skeleton-bar','skeleton-bar'].forEach((extraClass, idx) => {
+          const td = document.createElement('td');
+          td.dataset.label = labels[idx];
+          const span = document.createElement('span');
+          span.className = extraClass ? `skeleton-cell ${extraClass}` : 'skeleton-cell';
+          td.appendChild(span);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      wrapper.appendChild(table);
+      container.innerHTML = '';
+      container.appendChild(wrapper);
+    }
+
+    // Build the results table from the merged datacenter/local-zone map
+    function render(dcMap, options = {}){
+      const container=document.getElementById('results');
+      container.innerHTML='';
+      const wrapper=document.createElement('div');
+      wrapper.className='table-wrapper';
+      const table=document.createElement('table');
+      table.className='results-table';
+      table.innerHTML='<thead><tr><th>Datacenter</th><th>Linux (Models)</th><th>Windows (Models)</th></tr></thead>';
+      const tbody=document.createElement('tbody');
+      table.appendChild(tbody);
+      wrapper.appendChild(table);
+      container.appendChild(wrapper);
+
+      const { selectedPlans, searchTerm = '', collapsed = {}, hideEmpty = false } = options;
+      const planFilterSet = selectedPlans instanceof Set ? selectedPlans : null;
+      const searchLower = (searchTerm || '').trim().toLowerCase();
+      const collapsedSections = collapsed || {};
+      let tableHasRows = false;
+
+      const matchesSearch = entry => {
+        if(!searchLower) return true;
+        const haystack = `${entry.code} ${entry.name}`.toLowerCase();
+        return haystack.includes(searchLower);
+      };
+
+      const filterCodes = set => {
+        const source = Array.isArray(set) ? set : Array.from(set || []);
+        if(!planFilterSet) return source.slice();
+        return source.filter(code => planFilterSet.has(code));
+      };
+
+      const addEmptyRow = message => {
+        const tr = document.createElement('tr');
+        tr.className = 'empty-row';
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        td.textContent = message;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        tableHasRows = true;
+      };
+
+      // Helper used for both primary region rows and the extra blocks
+      function addRow(entry, showFriendly){
+        if(!matchesSearch(entry)) return false;
+        const showUnknown = entry.isLocalZone && !entry.hasLiveData;
+        const linuxCodes = filterCodes(entry.linux);
+        const windowsCodes = filterCodes(entry.windows);
+        if(hideEmpty && !showUnknown && linuxCodes.length === 0 && windowsCodes.length === 0) return false;
+        const tr=document.createElement('tr');
+        const td0=document.createElement('td');
+        td0.dataset.label = 'Datacenter';
+        td0.textContent = showFriendly ? entry.name : entry.code;
+        if(entry.isLocalZone) td0.appendChild(lzBadge());
+        tr.appendChild(td0);
+
+        // Fill Linux/Windows column for the row with plan chip links
+        const fill = (cell, codes, unknown) => {
+          if(codes.length===0){
+            cell.textContent = unknown ? 'Unknown' : 'None';
+            cell.className='cell-unavailable';
+            if(unknown){
+              const note=document.createElement('span');
+              note.className='cell-note';
+              note.textContent='Live API does not expose Local Zone stock';
+              cell.appendChild(document.createElement('br'));
+              cell.appendChild(note);
+            }
+            return;
+          }
+          cell.className='cell-available';
+          const wrap=document.createElement('div'); wrap.className='chips';
+          codes.slice().sort((a,b)=>{
+            const na = parseInt((a.match(/model(\d)/)||[])[1]||'0',10);
+            const nb = parseInt((b.match(/model(\d)/)||[])[1]||'0',10);
+            return na-nb;
+          }).forEach(code=>wrap.appendChild(planChipFromCode(code)));
+          cell.appendChild(wrap);
+        };
+        const td1=document.createElement('td');
+        td1.dataset.label = 'Linux (Models)';
+        fill(td1, linuxCodes, showUnknown);
+        const td2=document.createElement('td');
+        td2.dataset.label = 'Windows (Models)';
+        fill(td2, windowsCodes, showUnknown);
+        tr.appendChild(td1); tr.appendChild(td2);
+        tbody.appendChild(tr);
+        tableHasRows = true;
+        return true;
+      }
+
+      const order = PRIMARY_REGIONS.slice();
+      const used=new Set();
+      order.forEach(code=>{
+        const entry = dcMap[code];
+        if(!entry) return;
+        if(addRow(entry, false)) used.add(code);
+      });
+      const remaining = Object.values(dcMap).filter(d=>!used.has(d.code));
+      const lzNA = remaining.filter(d=>d.isLocalZone && d.lzRegion==='NA').sort((a,b)=>a.name.localeCompare(b.name));
+      const lzEU = remaining.filter(d=>d.isLocalZone && d.lzRegion==='EU').sort((a,b)=>a.name.localeCompare(b.name));
+      const others = remaining.filter(d=>!d.isLocalZone).sort((a,b)=>a.code.localeCompare(b.code));
+      const addSectionHeader = (title, key, count) => {
+        const tr = document.createElement('tr');
+        tr.className = 'section-row';
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'section-toggle';
+        btn.dataset.section = key;
+        const icon = document.createElement('span');
+        icon.className = 'section-toggle-icon';
+        icon.textContent = collapsedSections[key] ? '▶' : '▼';
+        const label = document.createElement('span');
+        label.textContent = count !== undefined ? `${title} (${count})` : title;
+        btn.appendChild(icon);
+        btn.appendChild(label);
+        btn.addEventListener('click', () => toggleSection(key));
+        td.appendChild(btn);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        tableHasRows = true;
+      };
+
+      if(lzNA.length){
+        addSectionHeader('Local Zones — North America', 'lz-NA', lzNA.length);
+        if(!collapsedSections['lz-NA']){
+          let sectionHasRows = false;
+          lzNA.forEach(d=>{ if(addRow(d, true)) sectionHasRows = true; });
+          if(!sectionHasRows) addEmptyRow('No North America Local Zones match these filters.');
+        }
+      }
+
+      if(lzEU.length){
+        addSectionHeader('Local Zones — Europe', 'lz-EU', lzEU.length);
+        if(!collapsedSections['lz-EU']){
+          let sectionHasRows = false;
+          lzEU.forEach(d=>{ if(addRow(d, true)) sectionHasRows = true; });
+          if(!sectionHasRows) addEmptyRow('No Europe Local Zones match these filters.');
+        }
+      }
+
+      others.forEach(d=>{
+        const displayName = `${d.name} (${d.code})`;
+        const entryView = Object.assign({}, d, { name: displayName });
+        addRow(entryView, true);
+      });
+
+      if(!tableHasRows){
+        addEmptyRow('No datacenters match the current filters.');
+      }
+    }
+
+    // Orchestrate live fetch, render results, and update timestamps
+    async function load(){
+      const status=document.getElementById('status');
+      status.textContent = 'Loading…';
+      renderSkeleton();
+
+      try{
+        const dcMap = {};
+        // 1. Fetch all data from all plans and merge into a single map.
+        const perPlan = await Promise.all(PLANS.map(p => fetchAllDatacenters(p.code).then(m=>({p,m}))));
+        perPlan.forEach(({p,m})=>{
+          Object.entries(m).forEach(([code,entry])=>{
+            if(!dcMap[code]){
+              dcMap[code] = {
+                code,
+                name: entry.name || code,
+                linux: new Set(),
+                windows: new Set(),
+                isLocalZone: !!entry.isLocalZone,
+                lzRegion: entry.lzRegion,
+                hasLiveData: !!entry.hasLiveData
+              };
+            }else{
+              if(entry.name && (!dcMap[code].name || dcMap[code].name === code)){
+                dcMap[code].name = entry.name;
+              }
+              if(entry.isLocalZone){
+                dcMap[code].isLocalZone = true;
+                dcMap[code].lzRegion = entry.lzRegion || dcMap[code].lzRegion;
+              }
+              if(entry.hasLiveData){
+                dcMap[code].hasLiveData = true;
+              }
+            }
+            entry.linux.forEach(v => dcMap[code].linux.add(v));
+            entry.windows.forEach(v => dcMap[code].windows.add(v));
+          });
+        });
+        // 2. AFTER all API data is merged, ensure our baseline regions and LZs are present.
+        ensureBaseRegions(dcMap);
+        injectLocalZones(dcMap);
+        // 3. Render the final, complete table.
+        latestData = dcMap;
+        renderWithFilters();
+        status.textContent = '';
+      }catch(e){
+        console.error(e);
+        status.textContent = 'Live availability could not be fetched – showing baseline placeholders only.';
+        const baseline = {};
+        ensureBaseRegions(baseline);
+        injectLocalZones(baseline);
+        latestData = baseline;
+        renderWithFilters();
+      }
+      document.getElementById('last-fetch').textContent = 'last fetch: ' + new Date().toLocaleString();
+      document.getElementById('refresh-btn').style.display = 'inline-flex';
+    }
+
+    // Kick everything off once the DOM is ready
+    document.addEventListener('DOMContentLoaded', ()=>{
+      initTheme();
+      initFilters();
+      load();
+      const refreshBtn = document.getElementById('refresh-btn');
+      if(refreshBtn){
+        refreshBtn.addEventListener('click', load);
+      }
+    });
+  </script>
+</body>
+</html>
