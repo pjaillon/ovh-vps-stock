@@ -476,6 +476,7 @@
     const VPS1_CODE = 'vps-2025-model1';
     // Local storage key shared by the eager theme bootstrapper above
     const THEME_STORAGE_KEY = 'ovhcloud-vps-theme';
+    const CACHE_STORAGE_KEY = 'ovhcloud-vps-cache';
 
 
     // Build a small link-style badge for a plan code
@@ -851,6 +852,62 @@
       }catch(e){}
     }
 
+    function getStoredCache(){
+      try{
+        const raw = localStorage.getItem(CACHE_STORAGE_KEY);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      }catch(e){
+        return null;
+      }
+    }
+
+    function setStoredCache(value){
+      try{
+        if(value === null){
+          localStorage.removeItem(CACHE_STORAGE_KEY);
+        }else{
+          localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(value));
+        }
+      }catch(e){}
+    }
+
+    function serializeDcMapForCache(dcMap){
+      const serialized = {};
+      Object.entries(dcMap || {}).forEach(([code, entry]) => {
+        if(!entry) return;
+        serialized[code] = {
+          name: entry.name,
+          linux: Array.from(entry.linux || []),
+          windows: Array.from(entry.windows || []),
+          isLocalZone: !!entry.isLocalZone,
+          lzRegion: entry.lzRegion,
+          hasLiveData: !!entry.hasLiveData
+        };
+      });
+      return serialized;
+    }
+
+    function rehydrateDcMapFromCache(cachePayload){
+      if(!cachePayload || typeof cachePayload !== 'object') return null;
+      const { data } = cachePayload;
+      if(!data || typeof data !== 'object') return null;
+      const map = {};
+      Object.entries(data).forEach(([code, entry]) => {
+        if(!entry) return;
+        map[code] = {
+          code,
+          name: entry.name || code,
+          linux: new Set(Array.isArray(entry.linux) ? entry.linux : []),
+          windows: new Set(Array.isArray(entry.windows) ? entry.windows : []),
+          isLocalZone: !!entry.isLocalZone,
+          lzRegion: entry.lzRegion,
+          hasLiveData: !!entry.hasLiveData
+        };
+      });
+      return map;
+    }
+
     // Hook up theme toggle plus system preference listeners
     function initTheme(){
       const toggle = document.getElementById('theme-toggle');
@@ -1074,8 +1131,28 @@
     // Orchestrate live fetch, render results, and update timestamps
     async function load(){
       const status=document.getElementById('status');
-      status.textContent = 'Loading…';
-      renderSkeleton();
+      if(status) status.textContent = 'Loading…';
+
+      let cachedDisplayed = false;
+      const cachedPayload = getStoredCache();
+      if(cachedPayload){
+        const cachedMap = rehydrateDcMapFromCache(cachedPayload);
+        if(cachedMap){
+          ensureBaseRegions(cachedMap);
+          injectLocalZones(cachedMap);
+          latestData = cachedMap;
+          renderWithFilters();
+          cachedDisplayed = true;
+          if(status){
+            const ts = cachedPayload.timestamp ? new Date(cachedPayload.timestamp).toLocaleString() : null;
+            status.textContent = ts ? `Showing cached data (${ts}). Refreshing…` : 'Showing cached data. Refreshing…';
+          }
+        }
+      }
+
+      if(!cachedDisplayed){
+        renderSkeleton();
+      }
 
       try{
         const dcMap = {};
@@ -1115,18 +1192,21 @@
         // 3. Render the final, complete table.
         latestData = dcMap;
         renderWithFilters();
-        status.textContent = '';
+        if(status) status.textContent = '';
+        setStoredCache({ timestamp: Date.now(), data: serializeDcMapForCache(dcMap) });
       }catch(e){
         console.error(e);
-        status.textContent = 'Live availability could not be fetched – showing baseline placeholders only.';
+        if(status) status.textContent = 'Live availability could not be fetched – showing baseline placeholders only.';
         const baseline = {};
         ensureBaseRegions(baseline);
         injectLocalZones(baseline);
         latestData = baseline;
         renderWithFilters();
       }
-      document.getElementById('last-fetch').textContent = 'last fetch: ' + new Date().toLocaleString();
-      document.getElementById('refresh-btn').style.display = 'inline-flex';
+      const lastFetch = document.getElementById('last-fetch');
+      if(lastFetch) lastFetch.textContent = 'last fetch: ' + new Date().toLocaleString();
+      const refreshBtn = document.getElementById('refresh-btn');
+      if(refreshBtn) refreshBtn.style.display = 'inline-flex';
     }
 
     // Kick everything off once the DOM is ready
